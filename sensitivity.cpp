@@ -248,7 +248,7 @@ int main (int argc, char* argv[])
             break;
         }
     }
-        
+
     sFile.close();
     pFile.close();    
 
@@ -268,8 +268,11 @@ int main (int argc, char* argv[])
     double localDist;
     double radPair, radDist, radDistPow5, radDistPow6, epsPair;
     double rad_der_per_pair, eps_der_per_pair;
+    double wat_rad_per_pair, wat_eps_per_pair;
     double rad_der_per_type = 0.0;
     double eps_der_per_type = 0.0;
+    double wat_rad_per_type = 0.0;
+    double wat_eps_per_type = 0.0;
     ofstream rdFile, edFile;
     rdFile.open("radDerivative.dat");
     edFile.open("epsDerivative.dat"); 
@@ -308,13 +311,13 @@ int main (int argc, char* argv[])
     }
    
     if (!atomTypeList.empty()) {
-        if( atomTypeList.back() == "EP") // Atom type of watervirtual particle found 
+        if( atomTypeList.back() == "EP") // Atom type of water virtual particle found 
             offset = 3;      // for four-site water model
         else 
             offset = 2;    // for three-site water model
     }
          
-    
+
     /********************************* Start the grand loop ********************************************/
 
     if (ierrDevice != cudaSuccess || !cuda.compare("no")) {   
@@ -389,8 +392,14 @@ int main (int argc, char* argv[])
                                 rad_der_per_pair = 12.0*(epsPair/localDist)*radDistPow5*(radDistPow6 - 1.0);
                                 eps_der_per_pair = (watEps/epsPair)*radDistPow6*(0.5*radDistPow6 - 1.0);
                                 
+                                wat_rad_per_pair = rad_der_per_pair;
+                                wat_eps_per_pair = eps_der_per_pair * epsArr[j] / watEps;                             
+
                                 rad_der_per_type += rad_der_per_pair;
                                 eps_der_per_type += eps_der_per_pair;
+                                wat_rad_per_type += wat_rad_per_pair;
+                                wat_eps_per_type += wat_eps_per_pair;
+
                             }
                         } // end of the k loop (solute-solvent)
                     }
@@ -403,6 +412,34 @@ int main (int argc, char* argv[])
                 epsDerMean[i] = epsDerMean[i] * ((frame - 1)*1.0) / (frame * 1.0) + eps_der_per_type / (frame * 1.0);
 
             } // end of i loop
+
+            for (j = numAtoms; j < numTotAtoms; j += (offset+1)) {
+                for (k = j + offset + 1; k < numTotAtoms; k += (offset+1)) {
+                    distX = boundaryConditions(coordsMatrix[j][0] - coordsMatrix[k][0], dimX);
+                    distY = boundaryConditions(coordsMatrix[j][1] - coordsMatrix[k][1], dimY);
+                    distZ = boundaryConditions(coordsMatrix[j][2] - coordsMatrix[k][2], dimZ);
+                    localDist = sqrt(distX * distX + distY * distY + distZ * distZ);
+                    if (localDist < cutoffDist){
+                        radDist = watRad * 2.0/localDist;
+                        radDistPow5 = pow(radDist, 5.0);
+                        radDistPow6 = radDistPow5 * radDist;
+                        wat_rad_per_pair = 12.0*(watEps/localDist)*radDistPow5*(radDistPow6 - 1.0);
+                        wat_eps_per_pair = radDistPow6*(0.5*radDistPow6 - 1.0);
+
+                        wat_rad_per_type += wat_rad_per_pair * 2.0;
+                        wat_eps_per_type += wat_eps_per_pair * 2.0;
+                    } 
+                }
+            }
+            rdFile << right << setw(12) << setprecision(4) << fixed << wat_rad_per_type;
+            edFile << right << setw(12) << setprecision(4) << fixed << wat_eps_per_type;
+                       
+            radDerMean[i] = radDerMean[i] * ((frame - 1)*1.0) / (frame * 1.0) + wat_rad_per_type / (frame * 1.0);
+            epsDerMean[i] = epsDerMean[i] * ((frame - 1)*1.0) / (frame * 1.0) + wat_eps_per_type / (frame * 1.0);
+
+            wat_rad_per_type = 0.0;
+            wat_eps_per_type = 0.0;
+             
             block.clear();
             rdFile << endl;
             edFile << endl;
