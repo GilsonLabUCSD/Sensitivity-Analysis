@@ -1,8 +1,6 @@
 # Sensitivity Analysis #
 
-## Written by Jian (Jane) Yin ##
-2017.10
-
+### Written by Jian (Jane) Yin (2017.10) ###
 
 This code computes the analytical first-order derivatives of binding free energy with respect to van der Waals parameters.
 
@@ -22,9 +20,10 @@ Only the Amber prmtop format is supported for the topology file (full.topo in th
 Secondly, run the sensitivity executable with three flags: -crd, -cutoff and -gpu. 
 
 Flags:
-  -crd       MD trajectory file
-  -cutoff    cutoff distance of nonbonded interactions
-  -gpu       yes or no
+
+	-crd       MD trajectory file
+	-cutoff    cutoff distance of nonbonded interactions
+	-gpu       yes or no
 
 Example:
 
@@ -43,4 +42,4 @@ If you would like to modify the script, issue
 
 	make -f makefile
  
-to regenerate the executable after you modify the code. 
+to compile the modified code. 
