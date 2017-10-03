@@ -1,0 +1,3 @@
+parm full.topo
+trajin traj.* nc
+trajout traj.mdcrd  mdcrd
