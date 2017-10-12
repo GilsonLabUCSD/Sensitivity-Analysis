@@ -12,7 +12,6 @@
 #include <ctype.h>
 #include <stdexcept>
 
-#define BETA 1.6774  // T = 300 K, k = 0.0019872041 Kcal/mol/K, BETA = 1/kT
 #define VDW_SF 2.0 //1-4 scaling factor of van der Waals
 
 using namespace std;
@@ -21,7 +20,10 @@ static void printWelcomeMessage();
 static void showUsage();
 static void queryDevices();
 bool fileExist(const std::string& name);
-double boundaryConditions(double sum, const double& dim);
+__host__ __device__ double boundaryConditions(double sum, const double& dim);
+__global__ void calcDerivativesSolventSolvent( double *xArr, double *yArr, double *zArr, const double dimX, const double dimY, const double dimZ, const double watRadius,\
+const double watEpsilon, const int waterSite, const int atomSize, const int totAtomSize, const double cut, double *derRadArr, double *derEpsArr, const int numWat); 
+
 
 int main (int argc, char* argv[])
 {
@@ -30,7 +32,7 @@ int main (int argc, char* argv[])
     double elapsed_secs;
     begin = clock();
     string argvStr, argvStr2;
-    string cuda = "yes"; 
+    string cudaOption = "yes"; 
     string coordsFile;
     string cutoffDistStr;
     double cutoffDist;
@@ -46,7 +48,9 @@ int main (int argc, char* argv[])
     int localDihed[4];
     string tmp, line, localType;
     double localRad, localEps;
-    double tmpX, tmpY, tmpZ; 
+
+    cudaError_t ierrAsync;
+    cudaError_t ierrSync;
 
     printWelcomeMessage();
 
@@ -76,13 +80,12 @@ int main (int argc, char* argv[])
             argvStr = argv[i]; 
             argvStr2 = argv[i+1];
             transform(argvStr.begin(), argvStr.end(), argvStr.begin(), ::tolower);
-            transform(argvStr2.begin(), argvStr2.end(), argvStr2.begin(), ::tolower);
             if (argvStr == "-crd")
                 coordsFile = argvStr2;
             else if (argvStr == "-cutoff") 
                 cutoffDistStr = argvStr2;
             else if (argvStr == "-gpu")
-                cuda = argvStr2; 
+                cudaOption = argvStr2; 
             else {
                 showUsage();
                 cerr << "Wrong arguments, please try again.\n\n";
@@ -92,7 +95,9 @@ int main (int argc, char* argv[])
 
     // Check the variables provided in the commandline
 
-    if (cuda.compare("yes")&&cuda.compare("no")) {
+    transform(cudaOption.begin(), cudaOption.end(), cudaOption.begin(), ::tolower);
+
+    if (cudaOption.compare("yes")&&cudaOption.compare("no")) {
         cerr << "Aborted. Please use YES or NO for the GPU option." << endl << endl;
         exit(1);
     }  
@@ -203,14 +208,6 @@ int main (int argc, char* argv[])
         getline(sFile, line);
     } while (!line.empty());
 
- /*   
-    for (i = 0; i < numAtoms; i++) {
-        for(j = 0; j < numAtoms; j++) {
-            if (connectMatrix[i][j] == 2)
-                cout << i + 1 << setw(8) << j+ 1 << endl;
-        }
-    }
-*/
     cout << "Reading in nonbonded parameters ..." << endl;
     double *radArr = new double[numAtoms];
     double *epsArr = new double[numAtoms];
@@ -248,7 +245,7 @@ int main (int argc, char* argv[])
             break;
         }
     }
-
+        
     sFile.close();
     pFile.close();    
 
@@ -262,22 +259,23 @@ int main (int argc, char* argv[])
     ifstream cFile(coordsFile.c_str());
     cudaError_t ierrDevice = cudaGetDevice( &dev );
     int lineCount;   
-    double dimX, dimY, dimZ;
+    double dim[3];
     int frame = 0;
     double distX, distY, distZ;
     double localDist;
     double radPair, radDist, radDistPow5, radDistPow6, epsPair;
     double rad_der_per_pair, eps_der_per_pair;
-    double wat_rad_per_pair, wat_eps_per_pair;
     double rad_der_per_type = 0.0;
     double eps_der_per_type = 0.0;
-    double wat_rad_per_type = 0.0;
-    double wat_eps_per_type = 0.0;
     ofstream rdFile, edFile;
     rdFile.open("radDerivative.dat");
     edFile.open("epsDerivative.dat"); 
     rdFile << " Frame ";
     edFile << " Frame ";
+    double wat_rad_per_pair, wat_eps_per_pair;
+    double wat_rad_per_type = 0.0;
+    double wat_eps_per_type = 0.0;
+
 
     // Allocate memory and initialize arrays
 
@@ -311,16 +309,15 @@ int main (int argc, char* argv[])
     }
    
     if (!atomTypeList.empty()) {
-        if( atomTypeList.back() == "EP") // Atom type of water virtual particle found 
+        if( atomTypeList.back() == "EP") // Atom type of watervirtual particle found 
             offset = 3;      // for four-site water model
         else 
             offset = 2;    // for three-site water model
     }
          
-
+    
     /********************************* Start the grand loop ********************************************/
-
-    if (ierrDevice != cudaSuccess || !cuda.compare("no")) {   
+    if (!cudaOption.compare("no")) {   
         // CPU code
         getline(cFile, line); 
         getline(cFile, line);
@@ -337,14 +334,10 @@ int main (int argc, char* argv[])
             } while (lineCount!=(numLines + 1));
             istringstream ss(block);
             for (i = 0; i < numTotAtoms; i++) {
-                ss >> tmpX >> tmpY >> tmpZ;
-                coordsMatrix[i][0] = tmpX;
-                coordsMatrix[i][1] = tmpY;
-                coordsMatrix[i][2] = tmpZ;
+                ss >> coordsMatrix[i][0] >> coordsMatrix[i][1] >> coordsMatrix[i][2];
             }    
- 
-            ss >> dimX >> dimY >> dimZ;
-
+            ss >> dim[0] >> dim[1] >> dim[2];
+          
             for (i = 0; i < atomTypeSize - offset; i++) { // loop over atom types (not including water)
                 rad_der_per_type = 0;
                 eps_der_per_type = 0;
@@ -353,9 +346,9 @@ int main (int argc, char* argv[])
                     if ((!atomTypeArr[i].compare(atomArr[j])) && (epsArr[j] > 0.00001)) {                 
                         for (k = 0; k < numAtoms; k++) { // Compute first-order derivatives involving solute-solute interactions
                             if ((j != k) && (connectMatrix[j][k]!=1) && (epsArr[k] > 0.00001) ) {
-                                distX = boundaryConditions(coordsMatrix[j][0] - coordsMatrix[k][0], dimX);
-                                distY = boundaryConditions(coordsMatrix[j][1] - coordsMatrix[k][1], dimY);                                             
-                                distZ = boundaryConditions(coordsMatrix[j][2] - coordsMatrix[k][2], dimZ);
+                                distX = boundaryConditions(coordsMatrix[j][0] - coordsMatrix[k][0], dim[0]);
+                                distY = boundaryConditions(coordsMatrix[j][1] - coordsMatrix[k][1], dim[1]);                                             
+                                distZ = boundaryConditions(coordsMatrix[j][2] - coordsMatrix[k][2], dim[2]);
                                 localDist = sqrt(distX * distX + distY * distY + distZ * distZ);
                                 if (localDist < cutoffDist){
                                     epsPair = sqrt(epsArr[j] * epsArr[k]);
@@ -378,9 +371,9 @@ int main (int argc, char* argv[])
                         }  // end of the k loop (solute-solute)
     
                         for (k = numAtoms; k < numTotAtoms; k += (offset+1)) { // Considering LJ interactions between solute atoms and water oxygen atoms
-                            distX = boundaryConditions(coordsMatrix[j][0] - coordsMatrix[k][0], dimX);
-                            distY = boundaryConditions(coordsMatrix[j][1] - coordsMatrix[k][1], dimY);
-                            distZ = boundaryConditions(coordsMatrix[j][2] - coordsMatrix[k][2], dimZ);
+                            distX = boundaryConditions(coordsMatrix[j][0] - coordsMatrix[k][0], dim[0]);
+                            distY = boundaryConditions(coordsMatrix[j][1] - coordsMatrix[k][1], dim[1]);
+                            distZ = boundaryConditions(coordsMatrix[j][2] - coordsMatrix[k][2], dim[2]);
                             localDist = sqrt(distX * distX + distY * distY + distZ * distZ);
                             if (localDist < cutoffDist) {
                                 epsPair = sqrt(epsArr[j] * watEps);
@@ -393,13 +386,14 @@ int main (int argc, char* argv[])
                                 eps_der_per_pair = (watEps/epsPair)*radDistPow6*(0.5*radDistPow6 - 1.0);
                                 
                                 wat_rad_per_pair = rad_der_per_pair;
-                                wat_eps_per_pair = eps_der_per_pair * epsArr[j] / watEps;                             
+                                wat_eps_per_pair = eps_der_per_pair * epsArr[j] / watEps; 
 
                                 rad_der_per_type += rad_der_per_pair;
                                 eps_der_per_type += eps_der_per_pair;
                                 wat_rad_per_type += wat_rad_per_pair;
                                 wat_eps_per_type += wat_eps_per_pair;
 
+  
                             }
                         } // end of the k loop (solute-solvent)
                     }
@@ -415,9 +409,9 @@ int main (int argc, char* argv[])
 
             for (j = numAtoms; j < numTotAtoms; j += (offset+1)) {
                 for (k = j + offset + 1; k < numTotAtoms; k += (offset+1)) {
-                    distX = boundaryConditions(coordsMatrix[j][0] - coordsMatrix[k][0], dimX);
-                    distY = boundaryConditions(coordsMatrix[j][1] - coordsMatrix[k][1], dimY);
-                    distZ = boundaryConditions(coordsMatrix[j][2] - coordsMatrix[k][2], dimZ);
+                    distX = boundaryConditions(coordsMatrix[j][0] - coordsMatrix[k][0], dim[0]);
+                    distY = boundaryConditions(coordsMatrix[j][1] - coordsMatrix[k][1], dim[1]);
+                    distZ = boundaryConditions(coordsMatrix[j][2] - coordsMatrix[k][2], dim[2]);
                     localDist = sqrt(distX * distX + distY * distY + distZ * distZ);
                     if (localDist < cutoffDist){
                         radDist = watRad * 2.0/localDist;
@@ -431,6 +425,7 @@ int main (int argc, char* argv[])
                     } 
                 }
             }
+
             rdFile << right << setw(12) << setprecision(4) << fixed << wat_rad_per_type;
             edFile << right << setw(12) << setprecision(4) << fixed << wat_eps_per_type;
                        
@@ -439,7 +434,7 @@ int main (int argc, char* argv[])
 
             wat_rad_per_type = 0.0;
             wat_eps_per_type = 0.0;
-             
+
             block.clear();
             rdFile << endl;
             edFile << endl;
@@ -459,9 +454,170 @@ int main (int argc, char* argv[])
         cout << endl;
     }
     else {
-        // CUDA code
+        // CUDA CODE
         queryDevices();    
+        
+        double *xCoords, *yCoords, *zCoords;
+        double *derArrEps, *derArrRad;    
 
+        // Allocate memory
+        int cudaArrSize = numTotAtoms *  sizeof (double);
+        cudaMallocManaged(&xCoords, cudaArrSize);
+        cudaMallocManaged(&yCoords, cudaArrSize);
+        cudaMallocManaged(&zCoords, cudaArrSize);
+
+        int nx = (numTotAtoms - numAtoms)/(offset + 1);
+        int ny = nx;
+
+        int derArrSize = nx * ny * sizeof (double);
+        cudaMallocManaged(&derArrRad, derArrSize);
+        cudaMallocManaged(&derArrEps, derArrSize);
+
+        for (m = 0; m < nx * ny; m++){
+            derArrRad[m] = 0;
+            derArrEps[m] = 0;
+        }
+
+        dim3 threads_per_block (16, 16, 1);
+        dim3 number_of_blocks ((nx + threads_per_block.x -1)/ threads_per_block.x, (ny + threads_per_block.y - 1)/ threads_per_block.y, 1);
+
+        getline(cFile, line);
+        getline(cFile, line);
+        do {
+            frame += 1;
+            rdFile << right << setw(7) << frame;
+            edFile << right << setw(7) << frame;
+            cout << "\r" << "Processing frame " << frame << std::flush;
+            lineCount = 0;
+            do {
+                lineCount += 1;
+                block = block + " " + line;
+                getline(cFile, line);
+            } while (lineCount!=(numLines + 1));
+            istringstream ss(block);
+            for (i = 0; i < numTotAtoms; i++) {
+               	ss >> xCoords[i] >> yCoords[i] >> zCoords[i];
+            }
+
+            ss >> dim[0] >> dim[1] >> dim[2];
+            for (i = 0; i < atomTypeSize - offset; i++) { // loop over atom types (not including water)
+                rad_der_per_type = 0;
+                eps_der_per_type = 0;
+
+                for (j = 0; j < numAtoms; j++) {
+                    if ((!atomTypeArr[i].compare(atomArr[j])) && (epsArr[j] > 0.00001)) {
+                        for (k = 0; k < numAtoms; k++) { // Compute first-order derivatives involving solute-solute interactions
+                            if ((j != k) && (connectMatrix[j][k]!=1) && (epsArr[k] > 0.00001) ) {
+                                distX = boundaryConditions(xCoords[j] - xCoords[k], dim[0]);
+                                distY = boundaryConditions(yCoords[j] - yCoords[k], dim[1]);
+                                distZ = boundaryConditions(zCoords[j] - zCoords[k], dim[2]);
+                                localDist = sqrt(distX * distX + distY * distY + distZ * distZ);
+                                if (localDist < cutoffDist){
+                                    epsPair = sqrt(epsArr[j] * epsArr[k]);
+                                    radPair = radArr[j] + radArr[k];
+                                    radDist = radPair/localDist;
+                                    radDistPow5 = pow(radDist, 5.0);
+                                    radDistPow6 = radDistPow5 * radDist;
+                                    rad_der_per_pair = 12.0*(epsPair/localDist)*radDistPow5*(radDistPow6 - 1.0);
+                                    eps_der_per_pair = (epsArr[k]/epsPair)*radDistPow6*(0.5*radDistPow6 - 1.0);
+
+                                    if (connectMatrix[j][k] == 2) { //1-4 interactions; use a scaling factor of 2 (VDW_SF) for van der Waals
+                                        rad_der_per_pair = rad_der_per_pair/VDW_SF;
+                                        eps_der_per_pair = eps_der_per_pair/VDW_SF;
+                                    }
+                                    rad_der_per_type += rad_der_per_pair;
+                                    eps_der_per_type += eps_der_per_pair;
+                                }
+                            }
+                        }  // end of the k loop (solute-solute)
+
+                        for (k = numAtoms; k < numTotAtoms; k += (offset+1)) { // Considering LJ interactions between solute atoms and water oxygen atoms
+                            distX = boundaryConditions(xCoords[j] - xCoords[k], dim[0]);
+                            distY = boundaryConditions(yCoords[j] - yCoords[k], dim[1]);
+                            distZ = boundaryConditions(zCoords[j] - zCoords[k], dim[2]);
+                            localDist = sqrt(distX * distX + distY * distY + distZ * distZ);
+                            if (localDist < cutoffDist) {
+                                epsPair = sqrt(epsArr[j] * watEps);
+                                radPair = radArr[j] + watRad;
+                                radDist = radPair/localDist;
+                                radDistPow5 = pow(radDist, 5.0);
+                                radDistPow6 = radDistPow5 * radDist;
+
+                                rad_der_per_pair = 12.0*(epsPair/localDist)*radDistPow5*(radDistPow6 - 1.0);
+                                eps_der_per_pair = (watEps/epsPair)*radDistPow6*(0.5*radDistPow6 - 1.0);
+
+                                wat_rad_per_pair = rad_der_per_pair;
+                                wat_eps_per_pair = eps_der_per_pair * epsArr[j] / watEps;                                
+ 
+                                rad_der_per_type += rad_der_per_pair;
+                                eps_der_per_type += eps_der_per_pair;
+                                wat_rad_per_type += wat_rad_per_pair;
+                                wat_eps_per_type += wat_eps_per_pair;
+
+                             }
+                        } // end of the k loop (solute-solvent)
+                    }
+
+                } // end of j loop
+                rdFile << right << setw(12) << setprecision(4) << fixed << rad_der_per_type;
+                edFile << right << setw(12) << setprecision(4) << fixed << eps_der_per_type;
+
+                radDerMean[i] = radDerMean[i] * ((frame - 1)*1.0) / (frame * 1.0) + rad_der_per_type / (frame * 1.0);
+                epsDerMean[i] = epsDerMean[i] * ((frame - 1)*1.0) / (frame * 1.0) + eps_der_per_type / (frame * 1.0);
+            } // end of i loop
+
+            calcDerivativesSolventSolvent <<< number_of_blocks, threads_per_block >>> (xCoords, yCoords, zCoords, dim[0], dim[1], dim[2], watRad, watEps, \
+                                     offset+1, numAtoms, numTotAtoms, cutoffDist, derArrRad, derArrEps, nx);
+
+            ierrSync = cudaGetLastError();
+            if ( cudaSuccess != ierrSync ) {
+                printf( "Kernel did not launch!\n" );
+                printf("Sync error: %s\n", cudaGetErrorString(ierrSync)); 
+                exit(1);
+             }        
+
+            ierrAsync = cudaDeviceSynchronize(); // Wait for the GPU to finish
+
+            if (ierrAsync != cudaSuccess) { printf("Async error: %s\n", cudaGetErrorString(ierrAsync)); exit(1);} 
+
+            for (m = 0; m < nx*ny; m++) {
+
+                wat_rad_per_type += derArrRad[m];
+                wat_eps_per_type += derArrEps[m];
+
+            }
+            rdFile << right << setw(12) << setprecision(4) << fixed << wat_rad_per_type;
+            edFile << right << setw(12) << setprecision(4) << fixed << wat_eps_per_type;
+                       
+            radDerMean[i] = radDerMean[i] * ((frame - 1)*1.0) / (frame * 1.0) + wat_rad_per_type / (frame * 1.0);
+            epsDerMean[i] = epsDerMean[i] * ((frame - 1)*1.0) / (frame * 1.0) + wat_eps_per_type / (frame * 1.0);
+
+            wat_rad_per_type = 0.0;
+            wat_eps_per_type = 0.0;
+             
+            block.clear();
+    
+            rdFile << endl;
+            edFile << endl;
+        } while (!cFile.eof());
+        
+        // Free all our allocated memory
+        cudaFree( xCoords ); cudaFree( yCoords ); cudaFree( zCoords );
+        cudaFree(derArrRad);
+        cudaFree(derArrEps);
+
+        rdFile << "   Mean";
+        edFile << "   Mean";
+
+        for (m = 0; m < atomTypeSize; m++) {
+            rdFile <<  right << setw(12) << setprecision(4) << fixed << radDerMean[m];
+            edFile <<  right << setw(12) << setprecision(4) << fixed << epsDerMean[m];
+        }
+
+        rdFile << endl;
+        edFile << endl;
+
+        cout << endl;
     }
     // Clean up 
     for (i = 0; i < numAtoms; i++)
@@ -482,7 +638,6 @@ int main (int argc, char* argv[])
     rdFile.close();
     edFile.close();
 
-    
     end = clock();
     elapsed_secs = double(end-begin)/CLOCKS_PER_SEC;
     double elapsed_hours = elapsed_secs / 3600.0;
@@ -524,7 +679,7 @@ static void showUsage()
               << endl;
 }
 
-double boundaryConditions(double sum, const double& dim)
+__host__ __device__ double boundaryConditions(double sum, const double& dim)
 {
     if (sum <= -dim*0.5)
         sum += dim;
@@ -566,5 +721,50 @@ static void queryDevices(){
     printf("Compute capability: %d.%d.\n", prop.major, prop.minor);
 
     cout << endl;
+}
+
+
+__global__ void calcDerivativesSolventSolvent( double *xArr, double *yArr, double *zArr, const double dimX, const double dimY, const double dimZ, const double watRadius,\
+const double watEpsilon, const int waterSite, const int atomSize, const int totAtomSize, const double cut, double *derRadArr, double *derEpsArr, const int numWat) 
+{              
+           
+   
+    double distX, distY, distZ;
+    int gx = blockIdx.x * blockDim.x + threadIdx.x;
+    int gy = blockIdx.y * blockDim.y + threadIdx.y;
+    double localDist, radDist, radDistPow5, radDistPow6;
+
+    int xc, yc;
+
+    if (gx < numWat && gy < numWat) {
+        
+        if (gx != gy) {
+
+            xc = atomSize + gx * waterSite;
+            yc = atomSize + gy * waterSite; 
+        
+            distX = boundaryConditions(xArr[xc] - xArr[yc], dimX);
+            distY = boundaryConditions(yArr[xc] - yArr[yc], dimY);
+            distZ = boundaryConditions(zArr[xc] - zArr[yc], dimZ);
+            localDist = sqrt(distX * distX + distY * distY + distZ * distZ);
+            
+            if (localDist < cut){
+                radDist = watRadius * 2.0/localDist;
+                radDistPow5 = pow(radDist, 5.0);
+                radDistPow6 = radDistPow5 * radDist;
+               
+                derRadArr[gx*numWat + gy] = 12.0*(watEpsilon/localDist)*radDistPow5*(radDistPow6 - 1.0);
+                derEpsArr[gx*numWat + gy] = radDistPow6*(0.5*radDistPow6 - 1.0);
+            }
+            else {
+                derRadArr[gx*numWat + gy] = 0.0;
+               	derEpsArr[gx*numWat + gy] = 0.0;
+           }  
+                
+
+        }
+        
+    }
+   
 }
 
