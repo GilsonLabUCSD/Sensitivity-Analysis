@@ -115,7 +115,7 @@ int main (int argc, char* argv[])
 
      
     if( !fileExist(coordsFile)) {
-        cerr << "Aborted. The trajectory file does not exist." << endl << endl;
+        cerr << "Aborted. The trajectory file " << coordsFile << "  does not exist." << endl << endl;
         exit(1);
     } 
 
