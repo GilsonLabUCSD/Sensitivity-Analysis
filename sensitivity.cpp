@@ -399,8 +399,8 @@ int main (int argc, char* argv[])
                     }
                               
                 } // end of j loop
-                rdFile << right << setw(12) << setprecision(4) << fixed << rad_der_per_type;
-                edFile << right << setw(12) << setprecision(4) << fixed << eps_der_per_type;
+                rdFile << right << setw(12) << scientific << setprecision(4)  << rad_der_per_type;
+                edFile << right << setw(12) << scientific << setprecision(4)  << eps_der_per_type;
    
                 radDerMean[i] = radDerMean[i] * ((frame - 1)*1.0) / (frame * 1.0) + rad_der_per_type / (frame * 1.0);
                 epsDerMean[i] = epsDerMean[i] * ((frame - 1)*1.0) / (frame * 1.0) + eps_der_per_type / (frame * 1.0);
@@ -426,8 +426,8 @@ int main (int argc, char* argv[])
                 }
             }
 
-            rdFile << right << setw(12) << setprecision(4) << fixed << wat_rad_per_type;
-            edFile << right << setw(12) << setprecision(4) << fixed << wat_eps_per_type;
+            rdFile << right << setw(12) << scientific << setprecision(4)  << wat_rad_per_type;
+            edFile << right << setw(12) << scientific << setprecision(4)  << wat_eps_per_type;
                        
             radDerMean[i] = radDerMean[i] * ((frame - 1)*1.0) / (frame * 1.0) + wat_rad_per_type / (frame * 1.0);
             epsDerMean[i] = epsDerMean[i] * ((frame - 1)*1.0) / (frame * 1.0) + wat_eps_per_type / (frame * 1.0);
@@ -444,8 +444,8 @@ int main (int argc, char* argv[])
         edFile << "   Mean";
         
         for (m = 0; m < atomTypeSize; m++) {
-            rdFile <<  right << setw(12) << setprecision(4) << fixed << radDerMean[m];
-            edFile <<  right << setw(12) << setprecision(4) << fixed << epsDerMean[m];
+            rdFile <<  right << setw(12) << scientific << setprecision(4)  << radDerMean[m];
+            edFile <<  right << setw(12) << scientific << setprecision(4)  << epsDerMean[m];
         }
 
         rdFile << endl;
@@ -563,8 +563,8 @@ int main (int argc, char* argv[])
                     }
 
                 } // end of j loop
-                rdFile << right << setw(12) << setprecision(4) << fixed << rad_der_per_type;
-                edFile << right << setw(12) << setprecision(4) << fixed << eps_der_per_type;
+                rdFile << right << setw(12) << scientific << setprecision(4)  << rad_der_per_type;
+                edFile << right << setw(12) << scientific << setprecision(4)  << eps_der_per_type;
 
                 radDerMean[i] = radDerMean[i] * ((frame - 1)*1.0) / (frame * 1.0) + rad_der_per_type / (frame * 1.0);
                 epsDerMean[i] = epsDerMean[i] * ((frame - 1)*1.0) / (frame * 1.0) + eps_der_per_type / (frame * 1.0);
@@ -590,8 +590,8 @@ int main (int argc, char* argv[])
                 wat_eps_per_type += derArrEps[m];
 
             }
-            rdFile << right << setw(12) << setprecision(4) << fixed << wat_rad_per_type;
-            edFile << right << setw(12) << setprecision(4) << fixed << wat_eps_per_type;
+            rdFile << right << setw(12) << scientific << setprecision(4)  << wat_rad_per_type;
+            edFile << right << setw(12) << scientific << setprecision(4)  << wat_eps_per_type;
                        
             radDerMean[i] = radDerMean[i] * ((frame - 1)*1.0) / (frame * 1.0) + wat_rad_per_type / (frame * 1.0);
             epsDerMean[i] = epsDerMean[i] * ((frame - 1)*1.0) / (frame * 1.0) + wat_eps_per_type / (frame * 1.0);
@@ -614,8 +614,8 @@ int main (int argc, char* argv[])
         edFile << "   Mean";
 
         for (m = 0; m < atomTypeSize; m++) {
-            rdFile <<  right << setw(12) << setprecision(4) << fixed << radDerMean[m];
-            edFile <<  right << setw(12) << setprecision(4) << fixed << epsDerMean[m];
+            rdFile <<  right << setw(12) << scientific << setprecision(4)  << radDerMean[m];
+            edFile <<  right << setw(12) << scientific << setprecision(4)  << epsDerMean[m];
         }
 
         rdFile << endl;
