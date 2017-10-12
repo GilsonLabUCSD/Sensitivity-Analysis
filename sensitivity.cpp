@@ -23,7 +23,7 @@ bool fileExist(const std::string& name);
 __host__ __device__ double boundaryConditions(double sum, const double& dim);
 __global__ void calcDerivativesSolventSolvent( double *xArr, double *yArr, double *zArr, const double dimX, const double dimY, const double dimZ, const double watRadius,\
 const double watEpsilon, const int waterSite, const int atomSize, const int totAtomSize, const double cut, double *derRadArr, double *derEpsArr, const int numWat); 
-
+static void reportMemStatus();
 
 int main (int argc, char* argv[])
 {
@@ -456,6 +456,8 @@ int main (int argc, char* argv[])
     else {
         // CUDA CODE
         queryDevices();    
+        cudaDeviceProp prop;
+        cudaGetDeviceProperties(&prop, dev);
         
         double *xCoords, *yCoords, *zCoords;
         double *derArrEps, *derArrRad;    
@@ -472,6 +474,8 @@ int main (int argc, char* argv[])
         int derArrSize = nx * ny * sizeof (double);
         cudaMallocManaged(&derArrRad, derArrSize);
         cudaMallocManaged(&derArrEps, derArrSize);
+
+        reportMemStatus();
 
         for (m = 0; m < nx * ny; m++){
             derArrRad[m] = 0;
@@ -702,7 +706,7 @@ static void queryDevices(){
 
     if (error_id != cudaSuccess) {
         printf("%s.\n",cudaGetErrorString(error_id));
-        cout << "Aborted. Please update your CUDA driver to the latest version." << endl << endl;
+        cout << "Aborted." << endl << endl;
         exit(1);
     }
 
@@ -766,5 +770,39 @@ const double watEpsilon, const int waterSite, const int atomSize, const int totA
         
     }
    
+}
+
+/**
+ * API to report the memory usage of the GPU
+ */
+static void reportMemStatus() {
+
+	// show memory usage of GPU
+	size_t free_byte;
+	size_t total_byte;
+	size_t malloc_byte;
+
+	cudaError_t cuda_status = cudaMemGetInfo(&free_byte, &total_byte);
+
+	if (cudaSuccess != cuda_status) {
+		printf("Error: cudaMemGetInfo fails, %s \n",
+				cudaGetErrorString(cuda_status));
+		return;
+	}
+
+	cuda_status = cudaDeviceGetLimit(&malloc_byte, cudaLimitMallocHeapSize);
+	if (cudaSuccess != cuda_status) {
+			printf("Error: cudaDeviceGetLimit fails, %s \n",
+					cudaGetErrorString(cuda_status));
+			return;
+	}
+
+	double free_db = (double) free_byte;
+	double total_db = (double) total_byte;
+	double used_db = total_db - free_db;
+	printf("GPU memory usage: used = %f, free = %f MB, total = %f MB, malloc limit = %f MB\n",
+			used_db / 1024.0 / 1024.0, free_db / 1024.0 / 1024.0,
+			total_db / 1024.0 / 1024.0, malloc_byte / 1024.0 / 1024.0);
+
 }
 
