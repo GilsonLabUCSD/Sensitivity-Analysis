@@ -2,7 +2,8 @@
 
 ### Written by Jian (Jane) Yin (2017.10) ###
 
-This code computes the analytical first-order derivatives of binding free energy with respect to van der Waals parameters.
+This code computes the analytical first-order derivatives of the standard chemical potential with respect to van der Waals parameters (\frac{\partial v}{\partial t}). To compute the derivative of the binding free 
+energy, one may obtain 
 
 To run the sensitivity analysis scripts, you need the Amber and parmEd programs installed on your machine.
 
