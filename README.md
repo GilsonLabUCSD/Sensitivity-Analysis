@@ -38,7 +38,7 @@ Only the Amber mdcrd format is supported for the coordinate file. If your trajec
 Enabling the -gpu option will increase the performance of the program significantly. 
 
 The cutoff distance should match the abrupt cutoff of van ver Waals interaction used in simulations. The sensitivity code does not take into account the long-range corrections 
-of the van der Waals interactions possibly used in MD simulations. However, it does not influence the predicting power significantly. 
+of the van der Waals interactions possibly used in MD simulations. However, it does not influence the predicting power of derivatives significantly. 
 
 The derivatives of each frame and the mean values will be printed in radDerivatives.dat (derivatives to radius) and epsDerivatives.dat (derivatives to epsilon).
 Note that in GAFF radius is used rather than sigma or R_min. So if you are interested in the derivatives to sigma or R_min, the derivatives to radius need to be converted accordingly.
