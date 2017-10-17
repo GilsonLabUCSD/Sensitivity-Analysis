@@ -9,7 +9,7 @@ binding free energy calculations. For the detailed theoretical framework and app
 Yin, J., Fenley, A. T., Henriksen, N. M., & Gilson, M. K. (2015). Toward improved force-field accuracy through sensitivity analysis of host-guest binding thermodynamics. 
 The Journal of Physical Chemistry B, 119(32), 10145-10155. http://pubs.acs.org/doi/abs/10.1021/acs.jpcb.5b04262 
 
-To run the sensitivity analysis scripts, you need the Amber and parmEd programs installed on your machine.
+To run the Sensitivity Analysis scripts, you need to install Amber and parmEd.
 
 ## Usage ##
 
