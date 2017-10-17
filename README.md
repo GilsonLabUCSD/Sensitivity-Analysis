@@ -2,8 +2,12 @@
 
 ### Written by Jian (Jane) Yin (2017.10) ###
 
-This code computes the analytical first-order derivatives of the standard chemical potential with respect to van der Waals parameters (\frac{\partial v}{\partial t}). To compute the derivative of the binding free 
-energy, one may obtain 
+This code computes the analytical first-order derivatives of the standard chemical potential with respect to van der Waals parameters. To compute the derivative of the binding free 
+energy, one may obtain the derivatives of the standard chemical potential from enthalpy calculations, i.e. simulations involving the initial and final states of the 
+binding free energy calculations. For the detailed theoretical framework and applications of Sensitivity Analysis, please refer to the following publication:
+
+Yin, J., Fenley, A. T., Henriksen, N. M., & Gilson, M. K. (2015). Toward improved force-field accuracy through sensitivity analysis of host-guest binding thermodynamics. 
+The Journal of Physical Chemistry B, 119(32), 10145-10155. http://pubs.acs.org/doi/abs/10.1021/acs.jpcb.5b04262 
 
 To run the sensitivity analysis scripts, you need the Amber and parmEd programs installed on your machine.
 
