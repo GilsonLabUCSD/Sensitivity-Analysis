@@ -35,7 +35,7 @@ Example:
 	./sensitivity -crd traj.mdcrd -cutoff 9.0 -gpu yes
 
 Only the Amber mdcrd format is supported for the coordinate file. If your trajectory uses the NetCDF or PDB format, you can use cpptraj or other programs to convert it to mdcrd. 
-Enabling the -gpu option will increase the performance of the program by around 50%. 
+Enabling the -gpu option will increase the performance of the program significantly. 
 
 The cutoff distance should match the abrupt cutoff of van ver Waals interaction used in simulations. The sensitivity code does not take into account the long-range corrections 
 of the van der Waals interactions possibly used in MD simulations. However, it does not influence the predicting power significantly. 
@@ -48,3 +48,8 @@ If you would like to modify the script, issue
 	make -f makefile
  
 to compile the modified code. 
+
+## Convergence ##
+
+It is worth noting that the derivatives may not coverge for protein-ligand systems. We encourage you to write your own scripts to pull values from radDerivatives.dat
+ and epsDerivatives.dat, and compute the uncertainties.   
