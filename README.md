@@ -52,4 +52,4 @@ to compile the modified code.
 ## Convergence ##
 
 It is worth noting that the derivatives may not coverge for protein-ligand systems. We encourage you to write your own scripts to pull values from radDerivatives.dat
- and epsDerivatives.dat, and compute the uncertainties.   
+ and epsDerivatives.dat to compute the uncertainties.   
