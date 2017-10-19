@@ -6,8 +6,8 @@ This code computes the analytical first-order derivatives of the standard chemic
 energy, one may obtain the derivatives of the standard chemical potential from enthalpy calculations, i.e. simulations involving the initial and final states of the 
 binding free energy calculations. For the detailed theoretical framework and applications of Sensitivity Analysis, please refer to the following publication:
 
-Yin, J., Fenley, A. T., Henriksen, N. M., & Gilson, M. K. (2015). Toward improved force-field accuracy through sensitivity analysis of host-guest binding thermodynamics. 
-The Journal of Physical Chemistry B, 119(32), 10145-10155. http://pubs.acs.org/doi/abs/10.1021/acs.jpcb.5b04262 
+Yin, J., Fenley, A. T., Henriksen, N. M., & Gilson, M. K. (__2015__). Toward improved force-field accuracy through sensitivity analysis of host-guest binding thermodynamics. 
+_The Journal of Physical Chemistry B_, 119(_32_), 10145-10155. http://pubs.acs.org/doi/abs/10.1021/acs.jpcb.5b04262 
 
 To run the Sensitivity Analysis scripts, you need to install Amber and parmEd.
 
