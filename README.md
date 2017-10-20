@@ -4,7 +4,8 @@
 
 This code computes the analytical first-order derivatives of the standard chemical potential with respect to van der Waals parameters. To compute the derivative of the binding free 
 energy, one may obtain the derivatives of the standard chemical potential from enthalpy calculations, i.e. simulations involving the initial and final states of the 
-binding free energy calculations. For the detailed theoretical framework and applications of Sensitivity Analysis, please refer to the following publication:
+binding free energy calculations, and then compute the difference between the bound and unbound states.
+For the detailed theoretical framework and applications of Sensitivity Analysis, please refer to the following publication:
 
 Yin, J., Fenley, A. T., Henriksen, N. M., & Gilson, M. K. (__2015__). Toward improved force-field accuracy through sensitivity analysis of host-guest binding thermodynamics. 
 _The Journal of Physical Chemistry B_, 119(_32_), 10145-10155. http://pubs.acs.org/doi/abs/10.1021/acs.jpcb.5b04262 
