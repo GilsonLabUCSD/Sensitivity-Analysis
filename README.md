@@ -4,7 +4,7 @@
 
 This code computes the analytical first-order derivatives of the standard chemical potential with respect to van der Waals parameters. To compute the derivative of the binding free 
 energy, one may obtain the derivatives of the standard chemical potential from enthalpy calculations, i.e. simulations involving the initial and final states of the 
-binding free energy calculations, and then compute the difference between the bound and unbound states.
+binding free energy calculations, and then compute the difference between the derivatives of the bound and unbound states.
 For the detailed theoretical framework and applications of Sensitivity Analysis, please refer to the following publication:
 
 Yin, J., Fenley, A. T., Henriksen, N. M., & Gilson, M. K. (__2015__). Toward improved force-field accuracy through sensitivity analysis of host-guest binding thermodynamics. 
@@ -39,7 +39,7 @@ Currently only the Amber mdcrd format is supported for the coordinate file. If y
 Enabling the -gpu option will greatly boost the speed of the program. 
 
 The cutoff distance should match the abrupt cutoff of van ver Waals interaction used in simulations. The sensitivity code does not take into account the long-range corrections 
-of the van der Waals interactions normally adopted in MD simulations. However, it won't affect the predicting power of derivatives significantly. 
+of the van der Waals interactions normally adopted in MD simulations. However, it won't affect the predicting power of derivatives to a significant extent. 
 
 The derivatives of each frame and the mean values will be printed in radDerivatives.dat (derivatives to radius) and epsDerivatives.dat (derivatives to epsilon).
 Note that in GAFF radius is used rather than sigma or R_min. Therefore, if you are interested in the derivatives to sigma or R_min, the derivatives to radius need to be converted accordingly.
