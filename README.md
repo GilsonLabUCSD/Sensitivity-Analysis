@@ -29,17 +29,17 @@ Flags:
 
 	-crd       MD trajectory file
 	-cutoff    cutoff distance of nonbonded interactions
-	-gpu       yes or no
+	-GPU       yes or no
 
 Example:
 
-	./sensitivity -crd traj.mdcrd -cutoff 9.0 -gpu yes
+	./sensitivity -crd traj.mdcrd -cutoff 9.0 -GPU yes
 
 Currently only the Amber mdcrd format is supported for the coordinate file. If your trajectory uses the NetCDF or PDB format, you can run cpptraj or other programs to convert it to mdcrd. 
 Enabling the -gpu option will greatly boost the speed of the program. 
 
 The cutoff distance should match the abrupt cutoff of van ver Waals interaction used in simulations. The sensitivity code does not take into account the long-range corrections 
-of the van der Waals interactions possibly adopted in MD simulations. However, it won't affect the predicting power of derivatives significantly. 
+of the van der Waals interactions normally adopted in MD simulations. However, it won't affect the predicting power of derivatives significantly. 
 
 The derivatives of each frame and the mean values will be printed in radDerivatives.dat (derivatives to radius) and epsDerivatives.dat (derivatives to epsilon).
 Note that in GAFF radius is used rather than sigma or R_min. Therefore, if you are interested in the derivatives to sigma or R_min, the derivatives to radius need to be converted accordingly.
