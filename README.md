@@ -35,11 +35,11 @@ Example:
 
 	./sensitivity -crd traj.mdcrd -cutoff 9.0 -gpu yes
 
-Only the Amber mdcrd format is supported for the coordinate file. If your trajectory uses the NetCDF or PDB format, you can use cpptraj or other programs to convert it to mdcrd. 
-Enabling the -gpu option will increase the performance of the program significantly. 
+Currently only the Amber mdcrd format is supported for the coordinate file. If your trajectory uses the NetCDF or PDB format, you can run cpptraj or other programs to convert it to mdcrd. 
+Enabling the -gpu option will greatly boost the speed of the program. 
 
 The cutoff distance should match the abrupt cutoff of van ver Waals interaction used in simulations. The sensitivity code does not take into account the long-range corrections 
-of the van der Waals interactions possibly used in MD simulations. However, it does not influence the predicting power of derivatives significantly. 
+of the van der Waals interactions possibly adopted in MD simulations. However, it won't affect the predicting power of derivatives significantly. 
 
 The derivatives of each frame and the mean values will be printed in radDerivatives.dat (derivatives to radius) and epsDerivatives.dat (derivatives to epsilon).
 Note that in GAFF radius is used rather than sigma or R_min. Therefore, if you are interested in the derivatives to sigma or R_min, the derivatives to radius need to be converted accordingly.
@@ -52,5 +52,5 @@ to compile the modified code.
 
 ## Convergence ##
 
-It is worth noting that the derivatives may not coverge for protein-ligand systems. We encourage you to write your own scripts to pull values from radDerivatives.dat
+It is worth noting that the derivatives may not coverge for large protein-ligand systems. We encourage you to write your own scripts to pull values from radDerivatives.dat
  and epsDerivatives.dat to compute the uncertainties.   
