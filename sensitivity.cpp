@@ -674,12 +674,12 @@ bool fileExist (const std::string& name) {
 static void showUsage()
 {
     std::cout << "Flags:\n"
-              << "  -crd       MD trajectory file\n"
+              << "  -crd       MD trajectory file; converted from binary\n"
               << "  -cutoff    cutoff distance of nonbonded interactions\n"
               << "  -gpu       yes or no\n"
               <<"\n"
               << "Example:\n"
-              << "  ./sensitivity -crd traj.mdcrd -cutoff 9.0 -gpu yes\n"
+              << "  ./sensitivity -crd converted.crd -cutoff 9.0 -gpu yes\n"
               << endl;
 }
 
