@@ -1,3 +1,4 @@
 parm full.topo
 trajin traj.* nc
-trajout traj.mdcrd  mdcrd
+autoimage
+trajout traj.inpcrd  inpcrd
