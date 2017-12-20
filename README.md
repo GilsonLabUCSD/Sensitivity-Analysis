@@ -27,16 +27,16 @@ Secondly, run the sensitivity executable with three flags: -crd, -cutoff and -gp
 
 Flags:
 
-	-crd       MD trajectory file
+	-crd       MD trajectory file; converted from binary
 	-cutoff    cutoff distance of nonbonded interactions
 	-GPU       yes or no
 
 Example:
 
-	./sensitivity -crd traj.mdcrd -cutoff 9.0 -GPU yes
+	./sensitivity -crd converted.crd -cutoff 9.0 -GPU yes
 
-Currently only the Amber mdcrd format is supported for the coordinate file. If your trajectory uses the NetCDF or PDB format, you can run cpptraj or other programs to convert it to mdcrd. 
-Enabling the -gpu option will greatly boost the speed of the program. 
+Currently only the Amber trajectory (non binary) is supported for the coordinate file. If your trajectory uses the NetCDF or PDB format, you can run cpptraj or other programs
+to convert it. Enabling the -gpu option will greatly boost the speed of the program. 
 
 The cutoff distance should match the abrupt cutoff of van ver Waals interaction used in simulations. The sensitivity code does not take into account the long-range corrections 
 of the van der Waals interactions normally adopted in MD simulations. However, it won't affect the predicting power of derivatives to a significant extent. 
